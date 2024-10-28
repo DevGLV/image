@@ -6,7 +6,7 @@ Este projeto em Python foi desenvolvido para realizar a análise de dados de rec
 
 Você pode acessar o aplicativo em funcionamento diretamente no link abaixo:
 
-🔗 **[Aplicação ao vivo - Análise de Reclamações de Clientes]([https://consumidorgov-kvsmrfkjsp4zaqs9g3fgve.streamlit.app](https://cnpconsumidorgov.streamlit.app/))**
+🔗 **[Aplicação ao vivo - Análise de Reclamações de Clientes]([https://consumidorgov-kvsmrfkjsp4zaqs9g3fgve.streamlit.app](https://cnpconsumidorgov.streamlit.app/)**
 
 ## Funcionalidades
 
