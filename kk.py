@@ -42,6 +42,7 @@ st.markdown("""
 # Carregar os dados
 data = pd.read_csv('dados_completos.csv', delimiter=',', encoding='latin-1')
 
+
 # Normalizar as colunas
 data['segmento_individual'] = data['segmento_individual'].str.strip().str.lower()
 data['nome_fantasia'] = data['nome_fantasia'].str.strip().str.lower()
@@ -636,171 +637,258 @@ with aba3:
     st.plotly_chart(fig_situacao)
 
 with aba4:
-    st.header('Análise de Reclamações')
-
-    # Mostrar valores únicos de 'segmento_de_mercado_x' e 'segmento_individual' para verificação
-    #st.write("Valores únicos de segmento_de_mercado_x:", data['segmento_de_mercado_x'].unique())
-    #st.write("Valores únicos de segmento_individual:", data['segmento_individual'].unique())
-
-    # Normalizar colunas para garantir que os valores sejam comparados corretamente
-    data['segmento_de_mercado_x'] = data['segmento_de_mercado_x'].str.strip().str.lower()
-    data['segmento_individual'] = data['segmento_individual'].str.strip().str.lower()
+        # Normalizar as colunas
+    data.columns = data.columns.str.lower().str.strip()
+    data = data.applymap(lambda s: s.lower().strip() if isinstance(s, str) else s)
 
     # Filtro de Segmento de Mercado
-    segmento = st.selectbox('Selecione o segmento de mercado', data['segmento_de_mercado_x'].unique(), key='segmento_mercado_aba4')
+    segmento = st.selectbox('Selecione o segmento de mercado', data['segmento_de_mercado_x'].unique(), key='segmento_mercado')
 
-    # Filtro de Segmento Individual - Aparece apenas se o segmento for 'Seguros, Capitalização e Previdência'
+    # Filtro de Segmento Individual - aparece apenas se o segmento for 'seguros, capitalização e previdência'
     if segmento == 'seguros, capitalização e previdência':
         segmento_individual = st.selectbox(
             'Selecione o segmento individual',
-            ['capitalização', 'seguros e previdência'],  # Combina Seguros e Previdência em uma única opção
-            key='segmento_individual_aba4'
+            ['capitalização', 'seguros e previdência'],  # Combina 'seguros' e 'previdência' em uma única opção
+            key='segmento_individual'
         )
     else:
         segmento_individual = None
 
-    # Filtragem dos dados com base nos filtros de segmento de mercado e individual
+    # Filtragem de dados com base nos segmentos
     if segmento == 'seguros, capitalização e previdência':
         if segmento_individual == 'seguros e previdência':
             dados_filtrados = data[(data['segmento_de_mercado_x'] == segmento) & 
-                                   (data['segmento_individual'].isin(['seguros', 'previdência']))]
+                                (data['segmento_individual'].isin(['seguros', 'previdência']))]
         else:
             dados_filtrados = data[(data['segmento_de_mercado_x'] == segmento) & 
-                                   (data['segmento_individual'] == segmento_individual)]
+                                (data['segmento_individual'] == segmento_individual)]
     else:
         dados_filtrados = data[data['segmento_de_mercado_x'] == segmento]
 
-    # Verificar os dados filtrados
-    #st.write("Dados filtrados:", dados_filtrados)
-
-    # Filtro por Empresa - Adicionando a opção 'Todos'
+    # Filtro de Empresas Disponíveis - Adicionando a opção 'Todos'
     empresas_disponiveis = ['Todos'] + list(dados_filtrados['nome_fantasia'].unique())
-    empresa_selecionada = st.selectbox('Selecione a empresa', empresas_disponiveis, key='empresa_aba4')
+    empresa_selecionada = st.selectbox('Selecione a empresa', empresas_disponiveis, key='empresa')
 
-    # Filtrar os dados novamente com base na empresa selecionada, exceto se for 'Todos'
+    # Aplicar o filtro de empresa, se uma específica for selecionada
     if empresa_selecionada != 'Todos':
         dados_filtrados = dados_filtrados[dados_filtrados['nome_fantasia'] == empresa_selecionada]
 
+    # Filtrar dados para reclamações "Não Resolvida"
+    dados_nao_resolvidos = dados_filtrados[dados_filtrados['avaliacao_reclamacao'] == "não resolvida"]
+
     # Verificação se há dados filtrados
     if dados_filtrados.empty:
-        st.write("Nenhum dado disponível para a seleção atual.")
+            st.write("Nenhum dado disponível para a seleção atual.")
     else:
-        st.write(f"Exibindo os dados para: {empresa_selecionada}")
+            st.write(f"Exibindo os dados para: {empresa_selecionada}")
 
-        # 5. Distribuição de Reclamações por Assunto, Grupo de Problema e Problema
-        st.header('Distribuição de Reclamações por Assunto, Grupo de Problema e Problema')
+            # 5. Distribuição de Reclamações por Assunto, Grupo de Problema e Problema
+            st.header('Distribuição de Reclamações por Assunto, Grupo de Problema e Problema')
 
-        # Agrupar os dados para criar a hierarquia de Assunto, Grupo de Problema e Problema
-        tree_map_data = dados_filtrados.groupby(['assunto', 'grupo_problema', 'problema']).size().reset_index(name='counts')
+            # Agrupar os dados para criar a hierarquia de Assunto, Grupo de Problema e Problema
+            tree_map_data = dados_filtrados.groupby(['assunto', 'grupo_problema', 'problema']).size().reset_index(name='counts')
 
-        # Criar o gráfico de mapa de árvore (Tree Map)
-        fig_tree_map = px.treemap(tree_map_data, 
-                                  path=['assunto', 'grupo_problema', 'problema'], 
-                                  values='counts', 
-                                  title="Distribuição de Reclamações por Assunto, Grupo de Problema e Problema",
-                                  color_discrete_sequence=cores)  # Paleta de cores
+            # Criar o gráfico de mapa de árvore (Tree Map)
+            fig_tree_map = px.treemap(tree_map_data, 
+                                    path=['assunto', 'grupo_problema', 'problema'], 
+                                    values='counts', 
+                                    title="Distribuição de Reclamações por Assunto, Grupo de Problema e Problema",
+                                    color_discrete_sequence=cores)  # Paleta de cores
 
-        # Exibir o gráfico de árvore
-        st.plotly_chart(fig_tree_map)
+            # Exibir o gráfico de árvore
+            st.plotly_chart(fig_tree_map)
 
-                # Define a paleta de cores
+        # Define a paleta de cores
     cores = ["#27306c", "#08adac", "#d12a78", "#e7ebea", "#8b9db9", "#b5bed1", "#7c7c9c", "#acacc4", "#b4b4c4", "#c4c4d4"]
 
-    # Seleção da análise para diferentes visualizações
+        # Seleção da análise para diferentes visualizações
     analise_selecionada = st.selectbox(
-        'Escolha uma análise:',
-        [
-            "Frequência de Avaliações da Reclamação",
-            "Grupo de Problema vs Nota do Consumidor",
-            "Como Comprou/Contratou vs Satisfação"
-        ]
+            'Escolha uma análise:',
+            [
+                "Frequência de Avaliações da Reclamação",
+                "Grupo de Problema vs Nota do Consumidor",
+                "Como Comprou/Contratou vs Satisfação"
+            ]
+        )
+
+        # Condições para as diferentes análises
+    if analise_selecionada == "Frequência de Avaliações da Reclamação":
+            st.header('Frequência de Avaliações da Reclamação')
+
+            freq_data = dados_filtrados['avaliacao_reclamacao'].value_counts().reset_index()
+            freq_data.columns = ['avaliacao_reclamacao', 'frequencia']
+
+            fig_pie = go.Figure()
+            fig_pie.add_trace(go.Pie(
+                labels=freq_data['avaliacao_reclamacao'],
+                values=freq_data['frequencia'],
+                hole=0.3,
+                hoverinfo="label+value+percent",
+                marker=dict(colors=cores)
+            ))
+            fig_pie.update_layout(title="Distribuição da Frequência de Avaliações de Reclamações")
+            st.plotly_chart(fig_pie)
+
+    elif analise_selecionada == "Grupo de Problema vs Nota do Consumidor":
+            st.header('Grupo de Problema vs Nota do Consumidor')
+
+            group_data = dados_filtrados.groupby('grupo_problema').agg(
+                media_nota=('nota_do_consumidor', 'mean')
+            ).reset_index().sort_values(by='media_nota', ascending=False)
+
+            fig_bar = go.Figure()
+            fig_bar.add_trace(go.Bar(
+                x=group_data['grupo_problema'],
+                y=group_data['media_nota'],
+                marker_color=cores[0],
+                text=group_data['media_nota'].round(2),
+                textposition='outside'
+            ))
+            fig_bar.update_layout(
+                title="Grupo de Problema vs Nota do Consumidor",
+                xaxis_title="Grupo de Problema",
+                yaxis_title="Nota Média",
+                showlegend=False
+            )
+            st.plotly_chart(fig_bar)
+
+    elif analise_selecionada == "Como Comprou/Contratou vs Satisfação":
+            st.header('Como Comprou/Contratou vs Satisfação')
+
+            avg_satisfaction = dados_filtrados.groupby('como_comprou_contratou').agg(
+                nota_media=('nota_do_consumidor', 'mean')
+            ).reset_index().sort_values(by='nota_media', ascending=False)
+
+            fig_bar = go.Figure()
+            fig_bar.add_trace(go.Bar(
+                x=avg_satisfaction['como_comprou_contratou'],
+                y=avg_satisfaction['nota_media'],
+                marker_color=cores[1],
+                text=avg_satisfaction['nota_media'].round(2),
+                textposition='outside'
+            ))
+            fig_bar.update_layout(
+                title="Como Comprou/Contratou vs Satisfação",
+                xaxis_title="Como Comprou/Contratou",
+                yaxis_title="Nota Média",
+                showlegend=False
+            )
+            st.plotly_chart(fig_bar)
+
+
+
+    # Título da aplicação
+    st.title("Análise das Reclamações Não Resolvidas")
+
+    # Estatísticas descritivas
+    #st.write("### Estatísticas Descritivas para Reclamações Não Resolvidas:")
+    #st.write(dados_nao_resolvidos.describe(include='all'))
+
+    # Análise dos Principais Problemas Identificados
+    st.write("### Principais Reclamações Identificadas")
+
+    # Contar as reclamações agrupadas por problema
+    problemas_reclamacoes = (
+        dados_nao_resolvidos.groupby(['problema'])
+        .size()
+        .reset_index(name='counts')
     )
 
-    # Análise: Frequência de Avaliações da Reclamação (Gráfico de Pizza)
-    if analise_selecionada == "Frequência de Avaliações da Reclamação":
-        st.header('Frequência de Avaliações da Reclamação')
+    # Obter os 3 principais problemas
+    top_problemas = problemas_reclamacoes.sort_values(by='counts', ascending=False).head(3)
 
-        # Contar a frequência de cada avaliação de reclamação
-        freq_data = dados_filtrados['avaliacao_reclamacao'].value_counts().reset_index()
-        freq_data.columns = ['avaliacao_reclamacao', 'frequencia']
+    # Exibir os resultados
+    for index, row in top_problemas.iterrows():
+        st.write(f"- **{row['problema']}**: **{row['counts']}** reclamações.")
 
-        # Gráfico de Pizza para a frequência das reclamações
-        fig_pie = go.Figure()
+    # Gráfico dos principais problemas (horizontal)
+    fig_top_problemas = px.bar(top_problemas, x='counts', y='problema',
+                                title="Principais Problemas em Reclamações Não Resolvidas",
+                                labels={'counts': 'Número de Reclamações'},
+                                orientation='h',  # Define a orientação como horizontal
+                                color_discrete_sequence=cores)
+    st.plotly_chart(fig_top_problemas)
 
-        fig_pie.add_trace(go.Pie(
-            labels=freq_data['avaliacao_reclamacao'],
-            values=freq_data['frequencia'],
-            hole=0.3,  # Pizza com buraco no centro
-            hoverinfo="label+value+percent",  # Exibe avaliação, frequência e porcentagem ao passar o mouse
-            marker=dict(colors=cores)  # Aplicando paleta de cores
-        ))
+    # Análise Temporal
+    dados_nao_resolvidos['data_finalizacao'] = pd.to_datetime(dados_nao_resolvidos['data_finalizacao'])
+    reclamacoes_por_mes = dados_nao_resolvidos.resample('M', on='data_finalizacao').size().reset_index(name='counts')
 
-        fig_pie.update_layout(
-            title="Distribuição da Frequência de Avaliações de Reclamações"
-        )
-        st.plotly_chart(fig_pie)
+    # Ordenar por data
+    reclamacoes_por_mes.columns = ['data_finalizacao', 'total_reclamacoes']
+    reclamacoes_por_mes.sort_values(by='data_finalizacao', ascending=True, inplace=True)
 
-    # Análise: Grupo de Problema vs Nota do Consumidor (Gráfico de Barras)
-    elif analise_selecionada == "Grupo de Problema vs Nota do Consumidor":
-        st.header('Grupo de Problema vs Nota do Consumidor')
+    # Gráfico temporal
+    st.write("### Análise Temporal das Reclamações Não Resolvidas:")
+    fig_temporal = px.line(reclamacoes_por_mes, x='data_finalizacao', y='total_reclamacoes',
+                            title="Reclamações Não Resolvidas ao Longo do Tempo",
+                            labels={'total_reclamacoes': 'Número de Reclamações'},
+                            line_shape='linear')
+    st.plotly_chart(fig_temporal)
 
-        # Calcular a média de nota e ordenar por nota média decrescente
-        group_data = dados_filtrados.groupby('grupo_problema').agg(
-            media_nota=('nota_do_consumidor', 'mean')
-        ).reset_index().sort_values(by='media_nota', ascending=False)
+    # Análise da Faixa Etária
+    st.write("### Distribuição das Reclamações Não Resolvidas por Faixa Etária")
 
-        # Gráfico de Barras com rótulos de dados para a média de notas
-        fig_bar = go.Figure()
+    contagem_faixa_etaria = dados_nao_resolvidos['faixa_etaria'].value_counts().reset_index()
+    contagem_faixa_etaria.columns = ['faixa_etaria', 'contagem']
 
-        fig_bar.add_trace(go.Bar(
-            x=group_data['grupo_problema'],
-            y=group_data['media_nota'],
-            name='Nota Média',
-            marker_color=cores[0],  # Aplicando a primeira cor da paleta
-            text=group_data['media_nota'].round(2),  # Rótulo com a nota arredondada
-            textposition='outside'
-        ))
+    # Gráfico da distribuição das faixas etárias
+    fig_faixa_etaria = px.bar(contagem_faixa_etaria.sort_values('contagem', ascending=False), 
+                            x='faixa_etaria', y='contagem',
+                            title="Distribuição das Reclamações Não Resolvidas por Faixa Etária",
+                            labels={'faixa_etaria': 'Faixa Etária', 'contagem': 'Número de Reclamações'},
+                            color_discrete_sequence=cores)
+    st.plotly_chart(fig_faixa_etaria)
 
-        fig_bar.update_layout(
-            title="Grupo de Problema vs Nota do Consumidor",
-            xaxis_title="Grupo de Problema",
-            yaxis_title="Nota Média",
-            showlegend=False
-        )
-        st.plotly_chart(fig_bar)
+    # Contagem de reclamações por região
+    contagem_regiao = dados_nao_resolvidos['regiao'].value_counts().reset_index()
+    contagem_regiao.columns = ['regiao', 'contagem']
+    contagem_regiao = contagem_regiao.sort_values(by='contagem', ascending=False)
 
-    # Análise: Como Comprou/Contratou vs Satisfação (Gráfico de Barras)
-    elif analise_selecionada == "Como Comprou/Contratou vs Satisfação":
-        st.header('Como Comprou/Contratou vs Satisfação')
+    st.write("### Contagem de Reclamações Não Resolvidas por Região:")
+    fig_regiao = px.pie(contagem_regiao, names='regiao', values='contagem', title="Distribuição das Reclamações por Região",
+                        color_discrete_sequence=cores)
+    st.plotly_chart(fig_regiao)
 
-        # Calcular a média de satisfação e ordenar por nota média decrescente
-        avg_satisfaction = dados_filtrados.groupby('como_comprou_contratou').agg(
-            nota_media=('nota_do_consumidor', 'mean')
-        ).reset_index().sort_values(by='nota_media', ascending=False)
+    # Contagem de reclamações por sexo
+    contagem_sexo = dados_nao_resolvidos['sexo'].value_counts().reset_index()
+    contagem_sexo.columns = ['sexo', 'contagem']
+    contagem_sexo = contagem_sexo.sort_values(by='contagem', ascending=False)
 
-        # Gráfico de Barras com rótulos de dados para a nota média
-        fig_bar = go.Figure()
+    st.write("### Contagem de Reclamações Não Resolvidas por Sexo:")
+    fig_sexo = px.pie(contagem_sexo, names='sexo', values='contagem', title="Distribuição das Reclamações por Sexo",
+                    color_discrete_sequence=cores)
+    st.plotly_chart(fig_sexo)
 
-        fig_bar.add_trace(go.Bar(
-            x=avg_satisfaction['como_comprou_contratou'],
-            y=avg_satisfaction['nota_media'],
-            name='Nota Média',
-            marker_color=cores[1],  # Aplicando a segunda cor da paleta
-            text=avg_satisfaction['nota_media'].round(2),
-            textposition='outside'
-        ))
+    # Insights e Conclusões Dinâmicos
+    st.write("### Insights e Conclusões:")
 
-        fig_bar.update_layout(
-            title="Como Comprou/Contratou vs Satisfação",
-            xaxis_title="Como Comprou/Contratou",
-            yaxis_title="Nota Média",
-            showlegend=False
-        )
-        st.plotly_chart(fig_bar)
+    if not dados_nao_resolvidos.empty:
+        # Calculando insights dinâmicos com base nos dados filtrados
+        regiao_mais_afetada = contagem_regiao.iloc[0]['regiao'] if not contagem_regiao.empty else "N/A"
+        total_reclamacoes = len(dados_nao_resolvidos)
+        
+        # Calcular sexo predominante
+        sexo_predominante = contagem_sexo.iloc[0]['sexo'] if not contagem_sexo.empty else "N/A"
+        
+        # Calcular faixa etária mais afetada (definindo a variável antes)
+        contagem_faixa_etaria = dados_nao_resolvidos['faixa_etaria'].value_counts().reset_index()
+        contagem_faixa_etaria.columns = ['faixa_etaria', 'contagem']
+        faixa_etaria_predominante = contagem_faixa_etaria.iloc[0]['faixa_etaria'] if not contagem_faixa_etaria.empty else "N/A"
 
+        # Adicionar insights dinâmicos à interface do Streamlit
+        st.write(f"1. A maioria das reclamações não resolvidas ocorre na região **{regiao_mais_afetada}**, que é a principal área de preocupação.")
+        
+        st.write(f"2. Total de reclamações não resolvidas: **{total_reclamacoes}**. Esse número requer atenção para melhorar o processo de resolução.")
+        
+        st.write(f"3. As reclamações não resolvidas são predominantemente feitas por consumidores do sexo **{sexo_predominante}**, o que pode indicar a necessidade de campanhas direcionadas para este público.")
+        
+        st.write(f"4. A faixa etária mais afetada é entre **{faixa_etaria_predominante}**, sugerindo que este grupo pode estar enfrentando desafios específicos que precisam ser abordados.")
+        
+    else:
+        st.write("Nenhuma reclamação não resolvida encontrada para os filtros selecionados.")
 
-
-
+    # Finalização
+    st.write("A análise acima fornece uma visão abrangente das reclamações não resolvidas, permitindo que a ouvidoria tome decisões informadas para melhorar a satisfação do cliente.")
 
 with aba5:
         # Normalizar as colunas para evitar inconsistências
@@ -1064,8 +1152,6 @@ with aba5:
 
     # Exibir o gráfico no Streamlit
     st.plotly_chart(fig_barras)
-
-
 
 with aba6:
     
