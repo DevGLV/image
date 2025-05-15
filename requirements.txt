@@ -1,2 +1,5 @@
-plotly==5.15.0
-selenium==4.8.0
+streamlit
+plotly
+pandas
+selenium
+webdriver-manager
