@@ -61,7 +61,7 @@ empresas_para_incluir = ['cnp capitalização (antiga caixa capitalização)',
                              'previsul',
                              'odonto empresas']
 
-st.sidebar.image("LogoAtt.png", width=200)  # Ajuste o caminho e a largura da imagem conforme necessário
+st.sidebar.image("cnpp.jpg", width=200)  # Ajuste o caminho e a largura da imagem conforme necessário
 
 # Filtros na Sidebar
 st.sidebar.header("Filtros")
